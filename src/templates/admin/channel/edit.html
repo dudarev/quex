@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Channel</title>
+</head>
+<body>
+<h1>
+    <a href="/admin">admin</a> /
+    <a href="/admin/channel">channel</a> /
+    <a href="/admin/channel/{{ channel.key.id() }}">{{ channel.key.id() }}</a> /
+    edit
+</h1>
+<form action="/admin/channel/{{ channel.key.id() }}/edit" method="post">
+    Title
+    <input type="text" name="title" value="{{ channel.title }}"/><br/>
+    Link
+    <input type="text" name="link" value="{{ channel.link }}"/><br/>
+    Type
+    <input type="radio" name="type" value="in" {% if channel.type == 'in' %} checked {% endif %}" /> In
+    <input type="radio" name="type" value="out" {% if channel.type == 'out' %} checked {% endif %}" /> Out
+    <br/>
+    <input type="submit" value="Submit"/>
+</form>
+</body>
+</html>

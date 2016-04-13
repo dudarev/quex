@@ -1,0 +1,8 @@
+.DS_Store
+.idea
+*.pyc
+
+scripts/out.txt
+
+src/lib
+src/app.yaml

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Config</title>
+</head>
+<body>
+<h1><a href="/admin">admin</a>/config</h1>
+<form action="/admin/config/edit" method="post">
+    Google Analytics ID:
+    <input type="text" name="google_analytics_id" value="{{ config.google_analytics_id }}"/><br/>
+    Twitter Consumer Key:
+    <input type="text" name="twitter_consumer_key" value="{{ config.twitter_consumer_key }}"/><br/>
+    Twitter Consumer Secret:
+    <input type="text" name="twitter_consumer_secret" value="{{ config.twitter_consumer_secret }}"/><br/>
+    <br/>
+    <input type="submit" value="Submit"/>
+</form>
+</body>
+</html>

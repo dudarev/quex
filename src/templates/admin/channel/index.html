@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Channels</title>
+</head>
+<body>
+    <a href="/admin/channel/add">Add Channel</a>
+    <ul>
+        {% for channel in channels %}
+        <li>
+            <a href="/admin/channel/{{ channel.key.id() }}">{{ channel.title_plus }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

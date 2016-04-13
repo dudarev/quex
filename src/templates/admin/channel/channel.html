@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Channel</title>
+</head>
+<body>
+<h1><a href="/admin">admin</a>/<a href="/admin/channel">channel</a>/{{ channel.key.id() }}</h1>
+{{ channel.title }} <br/>
+<a href="{{ channel.link }}">{{ channel.link }}</a> <br/>
+Type: {{ channel.type }} <br/>
+<p><a href="/admin/channel/{{ channel.key.id() }}/edit">Edit</a></p>
+<p><a href="/admin/channel/{{ channel.key.id() }}/delete">Delete</a></p>
+</body>
+</html>

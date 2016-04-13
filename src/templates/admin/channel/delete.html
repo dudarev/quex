@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Channel</title>
+</head>
+<body>
+<h1>
+    <a href="/admin">admin</a> /
+    <a href="/admin/channel">channel</a> /
+    <a href="/admin/channel/{{ channel.key.id() }}">{{ channel.key.id() }}</a> /
+    delete
+</h1>
+<p>Do you really want to delete the channel?</p>
+<p>
+    {{ channel.title }} <br/>
+    {{ channel.link }}
+</p>
+<form action="/admin/channel/{{ channel.key.id() }}" method="get">
+    <input type="submit" value="No"/>
+</form>
+<form action="/admin/channel/{{ channel.key.id() }}/delete" method="post">
+    <input type="submit" value="Yes"/>
+</form>
+</body>
+</html>
