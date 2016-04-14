@@ -38,8 +38,6 @@ def edit(channel_id):
     c = Channel.get_by_id(channel_id)
     if request.method == 'POST':
         c.title = request.form.get('title', '')
-        c.link = request.form.get('link', '')
-        c.type = request.form.get('type', 'in')
         c.put()
         return redirect('/admin/channel', code=303)
     return render_template('admin/channel/edit.html', channel=c)
