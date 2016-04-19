@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ask City</title>
+</head>
+<body>
+<form action="/search" method="get">
+    <input type="text" name="q">
+    <input type="submit" value="Go">
+</form>
+{{ total_questions_count }}
+<ul>
+    {% for q in questions %}
+        <li>
+            <a href="/q/{{ q.key.urlsafe() }}">{{ q.title_plus | safe }}</a>
+        </li>
+    {% endfor %}
+</ul>
+
+{% if previous_start > 0%}< <a href="/?start={{ previous_start }}">previous</a> {% endif %}
+|
+{% if next_start %}<a href="/?start={{ next_start }}">next</a> > {% endif %}
+
+</body>
+</html>
