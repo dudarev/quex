@@ -17,14 +17,15 @@ It also re-broadcasts to multiple channels to get questions seen by many.
 * Admin can see any channel.                                         `/admin/channel/<channel_id> GET`
 * Admin can edit any channel.                                        `/admin/channel/<channel_id>/edit GET, POST`
 * Admin can delete any channel.                                      `/admin/channel/<channel_id>/delete GET, POST`
-* The wall posts are periodically loaded and stored.                 `cron`
-* The comments to questions are periodically loaded and stored.      `cron`
-* Comments for questions are periodically re-loaded.                 `cron`
+* The wall posts are periodically loaded and stored.                 `/cron/fetch_questions`
+* The old wall posts are periodically loaded and stored.             `/cron/fetch_old_questions`
+* The comments to questions are periodically loaded and stored.      `/cron/fetch_answers`
+* Comments for questions are periodically re-loaded.                 `/cron/fetch_more_answers`
 * User can see all posts in reverse chronological order.             `/?start=<start> GET`
 * User can search all questions.                                     `/search?q=<query>&start=<start> GET`
 * User can see a question with comments.                             `/q/<question_id> GET`
-* User can paginate comments.                                        `/q/<question_id>?start=<start> GET`
-* Posts with questions marks are broadcasted to Twitter out-channel. `cron`
+* Posts with most comments in last 12 hours are added to Atom.       `/cron/update_feed`
+* Atom feed with latest most commented posts.                        `/atom`
 * Data is collected in Google Analytics.
 
 
