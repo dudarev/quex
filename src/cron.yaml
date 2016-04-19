@@ -1,0 +1,4 @@
+cron:
+- description: fetch questions
+  url: /cron/fetch_questions
+  schedule: every 15 minutes
