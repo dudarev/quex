@@ -7,5 +7,12 @@
 <body>
 <h1>{{ question.title }}</h1>
 <p>via <a href="{{ question.source_url }}">{{ channel.title }}</a></p>
+<ul>
+    {% for answer in answers %}
+    <li>
+    {{ answer.text }}
+    </li>
+    {% endfor %}
+</ul>
 </body>
 </html>

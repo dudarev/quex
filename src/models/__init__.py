@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from google.appengine.ext import ndb
+from google.appengine.api import taskqueue
 
 import vk
 
@@ -46,38 +47,85 @@ class Channel(ndb.Model):
         self.put()
         return self.data
 
+    def _update_vk_questions(self, questions_data):
+        for post in questions_data:
+            q_id = 'vk:{}_{}'.format(self.data['uid'], post['id'])
+            q = Question.get_or_insert(q_id)
+            if not q.channel:
+                q.channel = self.key
+                q.text = post['text']
+                q.title = post['text'][:q.MAX_TITLE_LENGTH]
+                q.created_at = datetime.fromtimestamp(int(post['date']))
+                q.put()
+            taskqueue.add(url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
+
     def fetch_questions(self):
         data = self._update_data()
         if self.type == 'in' and 'vk.com' in self.link:
             questions_data = vk.fetch_questions(self.data)
-            Question.update_vk_questions(questions_data, self)
+            self._update_vk_questions(questions_data)
 
 
 class Question(ndb.Model):
+    answers_fetched_at = ndb.DateTimeProperty(default=datetime(2000, 1, 1), verbose_name='Time Answers Fetched')
     channel = ndb.KeyProperty(kind=Channel)
-    title = ndb.StringProperty(default='', verbose_name='Title')
-    text = ndb.TextProperty(default='', verbose_name='Text')
-    updated_at = ndb.DateTimeProperty(auto_now=True, verbose_name='Time Updated')
     created_at = ndb.DateTimeProperty(verbose_name='Time Created')
+    text = ndb.TextProperty(default='', verbose_name='Text')
+    title = ndb.StringProperty(default='', verbose_name='Title')
+    updated_at = ndb.DateTimeProperty(auto_now=True, verbose_name='Time Updated')
 
     MAX_TITLE_LENGTH = 500
     VK_POST_URL_TEPMPLATE = 'https://vk.com/wall{owner_and_post_id}'
+    ANSWERS_UPDATE_NUMBER = 20
 
-    @classmethod
-    def update_vk_questions(cls, questions_data, channel):
-        for post in questions_data:
-            q = cls.get_or_insert('vk:{}_{}'.format(channel.data['uid'], post['id']))
-            q.channel = channel.key
-            q.text = post['text']
-            q.title = post['text'][:cls.MAX_TITLE_LENGTH]
-            q.created_at = datetime.fromtimestamp(int(post['date']))
-            q.put()
+    @property
+    def vk_owner_and_post_id(self):
+        """
+        VK questions have id in the form "vk:<owner_id>_<post_id>".
+        This method returns "<owner_id>_<post_id>".
+        """
+        return self.key.id().split(':')[1]
 
     @property
     def source_url(self):
-        owner_and_post_id = self.key.id().split(':')[1]
-        return self.VK_POST_URL_TEPMPLATE.format(owner_and_post_id=owner_and_post_id)
+        return self.VK_POST_URL_TEPMPLATE.format(owner_and_post_id=self.vk_owner_and_post_id)
 
     @property
     def title_plus(self):
         return self.title or 'Post'
+
+    @staticmethod
+    def _fetch_questions_answers(questions):
+        for q in questions:
+            taskqueue.add(url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
+
+    @classmethod
+    def fetch_old_questions_answers(cls):
+        questions = cls.query().order(cls.answers_fetched_at).fetch(cls.ANSWERS_UPDATE_NUMBER)
+        cls._fetch_questions_answers(questions)
+
+    @classmethod
+    def fetch_new_questions_answers(cls):
+        questions = cls.query().order(-cls.created_at).fetch(cls.ANSWERS_UPDATE_NUMBER)
+        cls._fetch_questions_answers(questions)
+
+    def _update_answers(self, answers):
+        for comment in answers:
+            a = Answer.get_or_insert(self.key.id() + '_{}'.format(comment['cid']))
+            if not a.question:
+                a.question = self.key
+                a.text = comment['text']
+                a.created_at = datetime.fromtimestamp(int(comment['date']))
+                a.put()
+        self.answers_fetched_at = datetime.utcnow()
+        self.put()
+
+    def fetch_answers(self):
+        answers = vk.fetch_post_comments(*self.vk_owner_and_post_id.split('_'))
+        self._update_answers(answers)
+
+
+class Answer(ndb.Model):
+    question = ndb.KeyProperty(kind=Question)
+    text = ndb.TextProperty(default='', verbose_name='Text')
+    created_at = ndb.DateTimeProperty(verbose_name='Time Created')

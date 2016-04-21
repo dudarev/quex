@@ -15,7 +15,12 @@ threadsafe: yes
 # Handlers define how to route requests to your application.
 handlers:
 
-- url: /cron/fetch_questions
+- url: /cron/.*
+  script: main.app
+  login: admin
+
+- url: /tasks/.*
+  script: main.app
   login: admin
 
 # App Engine serves and caches static files contained in the listed directories

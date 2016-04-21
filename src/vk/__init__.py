@@ -70,6 +70,19 @@ def fetch_user_wall_posts(uid, offset=0):
     return res
 
 
+def fetch_post_comments(owner_id, post_id, offset=0):
+    r = urlfetch.fetch(
+        WALL_COMMENTS_ENDPOINT.format(
+            owner_id=owner_id, post_id=post_id, offset=offset
+        )
+    )
+    try:
+        res = _to_json(r)['response'][1:]
+    except KeyError:
+        res = []
+    return res
+
+
 def fetch_group_posts(offset=0):
     return []
 
