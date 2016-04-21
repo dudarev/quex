@@ -103,11 +103,13 @@ class Question(ndb.Model):
     def fetch_old_questions_answers(cls):
         questions = cls.query().order(cls.answers_fetched_at).fetch(cls.ANSWERS_UPDATE_NUMBER)
         cls._fetch_questions_answers(questions)
+        return len(questions)
 
     @classmethod
     def fetch_new_questions_answers(cls):
         questions = cls.query().order(-cls.created_at).fetch(cls.ANSWERS_UPDATE_NUMBER)
         cls._fetch_questions_answers(questions)
+        return len(questions)
 
     def _update_answers(self, answers):
         for comment in answers:
