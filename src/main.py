@@ -1,5 +1,5 @@
-from google.appengine.api import memcache
 from flask import Flask, render_template, request
+from google.appengine.api import memcache
 
 from models import Question
 
@@ -9,6 +9,7 @@ app = Flask(__name__)
 import admin
 import cron
 import questions
+import tasks
 
 
 TOTAL_COUNT_CACHE_TIME = 3600
@@ -28,8 +29,6 @@ def main():
     else:
         next_start = 0
     previous_start = start - QUESTIONS_PER_PAGE
-    if previous_start < 0:
-        previous_start = 0
     context = {
         'next_start': next_start,
         'previous_start': previous_start,

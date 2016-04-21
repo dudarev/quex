@@ -18,7 +18,7 @@
     {% endfor %}
 </ul>
 
-{% if previous_start > 0%}< <a href="/?start={{ previous_start }}">previous</a> {% endif %}
+{% if previous_start >= 0%}< <a href="/?start={{ previous_start }}">previous</a> {% endif %}
 |
 {% if next_start %}<a href="/?start={{ next_start }}">next</a> > {% endif %}
 
