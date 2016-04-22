@@ -2,12 +2,12 @@ cron:
 
 - description: fetch questions
   url: /cron/fetch_questions
-  schedule: every 10 minutes
+  schedule: every 30 minutes
 
 - description: fetch old questions answers
   url: /cron/fetch_old_questions_answers
-  schedule: every 10 minutes
+  schedule: every 30 minutes
 
 - description: fetch new questions answers
   url: /cron/fetch_new_questions_answers
-  schedule: every 10 minutes
+  schedule: every 30 minutes
