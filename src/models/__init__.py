@@ -60,10 +60,26 @@ class Channel(ndb.Model):
             taskqueue.add(url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
 
     def fetch_questions(self):
-        data = self._update_data()
+        """
+        Fetches new and old questions in the channel.
+        """
+        self._update_data()
         if self.type == 'in' and 'vk.com' in self.link:
+
+            # fetch new
             questions_data = vk.fetch_questions(self.data)
             self._update_vk_questions(questions_data)
+
+            # fetch old
+            offset = self.data.get('offset', 0)
+            questions_data = vk.fetch_questions(self.data, offset=offset)
+            self._update_vk_questions(questions_data)
+
+            if questions_data:
+                self.data['offset'] = offset + vk.WALL_POSTS_COUNT
+            else:
+                self.data['offset'] = 0
+            self.put()
 
 
 class Question(ndb.Model):
@@ -75,7 +91,7 @@ class Question(ndb.Model):
     updated_at = ndb.DateTimeProperty(auto_now=True, verbose_name='Time Updated')
 
     MAX_TITLE_LENGTH = 500
-    VK_POST_URL_TEPMPLATE = 'https://vk.com/wall{owner_and_post_id}'
+    VK_POST_URL_TEMPLATE = 'https://vk.com/wall{owner_and_post_id}'
     ANSWERS_UPDATE_NUMBER = 20
 
     @property
@@ -88,7 +104,7 @@ class Question(ndb.Model):
 
     @property
     def source_url(self):
-        return self.VK_POST_URL_TEPMPLATE.format(owner_and_post_id=self.vk_owner_and_post_id)
+        return self.VK_POST_URL_TEMPLATE.format(owner_and_post_id=self.vk_owner_and_post_id)
 
     @property
     def title_plus(self):

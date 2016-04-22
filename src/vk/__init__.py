@@ -3,6 +3,8 @@ import json
 from google.appengine.api import urlfetch
 
 
+WALL_POSTS_COUNT = 20
+WALL_COMMENTS_COUNT = 100
 GROUP_DATA_ENDPOINT = (
     'https://api.vk.com/method/groups.getById?'
     'group_ids={group_id}&'
@@ -17,14 +19,15 @@ WALL_POSTS_ENDPOINT = (
     'https://api.vk.com/method/wall.get?'
     'owner_id={owner_id}&'
     'version=5.50&'
-    'offset={offset}'
+    'offset={offset}&'
+    'count={count}&'
 )
 WALL_COMMENTS_ENDPOINT = (
     'https://api.vk.com/method/wall.getComments?'
     'owner_id={owner_id}&'
     'post_id={post_id}&'
     'offset={offset}&'
-    'count=100'
+    'count={count}&'
 )
 
 
@@ -60,7 +63,7 @@ def fetch_user_or_group_data(link):
 def fetch_user_wall_posts(uid, offset=0):
     r = urlfetch.fetch(
         WALL_POSTS_ENDPOINT.format(
-            owner_id=uid, offset=offset
+            owner_id=uid, offset=offset, count=WALL_POSTS_COUNT
         )
     )
     try:
@@ -73,7 +76,7 @@ def fetch_user_wall_posts(uid, offset=0):
 def fetch_post_comments(owner_id, post_id, offset=0):
     r = urlfetch.fetch(
         WALL_COMMENTS_ENDPOINT.format(
-            owner_id=owner_id, post_id=post_id, offset=offset
+            owner_id=owner_id, post_id=post_id, offset=offset, count=WALL_COMMENTS_COUNT
         )
     )
     try:
@@ -87,17 +90,18 @@ def fetch_group_posts(offset=0):
     return []
 
 
-def fetch_questions(channel_data):
+def fetch_questions(channel_data, offset=0):
     """
     VK channel can be either a user or a group.
     :param channel_data: data obtained with ``fetch_data`` above.
+    :param offset: offset to use use to get next questions batch.
     :return:
     """
     uid = channel_data.get('uid', None)
     gid = channel_data.get('gid', None)
     res = []
     if uid:
-        res = fetch_user_wall_posts(uid)
+        res = fetch_user_wall_posts(uid, offset=offset)
     if gid:
-        res = fetch_group_posts(gid)
+        res = fetch_group_posts(gid, offset=offset)
     return res
