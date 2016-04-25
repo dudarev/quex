@@ -49,7 +49,10 @@ class Channel(ndb.Model):
 
     def _update_vk_questions(self, questions_data):
         for post in questions_data:
-            q_id = 'vk:{}_{}'.format(self.data['uid'], post['id'])
+            uid = self.data.get('uid', None)
+            gid = self.data.get('gid', None)
+            id_ = uid or -gid
+            q_id = 'vk:{}_{}'.format(id_, post['id'])
             q = Question.get_or_insert(q_id)
             if not q.channel:
                 q.channel = self.key

@@ -60,10 +60,14 @@ def fetch_user_or_group_data(link):
     return res['response'][0]
 
 
-def fetch_user_wall_posts(uid, offset=0):
+def fetch_wall_posts(user_or_group_id, offset=0):
+    """
+    Group id must be negative by VK convention:
+    https://vk.com/dev/wall.get
+    """
     r = urlfetch.fetch(
         WALL_POSTS_ENDPOINT.format(
-            owner_id=uid, offset=offset, count=WALL_POSTS_COUNT
+            owner_id=user_or_group_id, offset=offset, count=WALL_POSTS_COUNT
         )
     )
     try:
@@ -86,10 +90,6 @@ def fetch_post_comments(owner_id, post_id, offset=0):
     return res
 
 
-def fetch_group_posts(offset=0):
-    return []
-
-
 def fetch_questions(channel_data, offset=0):
     """
     VK channel can be either a user or a group.
@@ -99,9 +99,6 @@ def fetch_questions(channel_data, offset=0):
     """
     uid = channel_data.get('uid', None)
     gid = channel_data.get('gid', None)
-    res = []
-    if uid:
-        res = fetch_user_wall_posts(uid, offset=offset)
-    if gid:
-        res = fetch_group_posts(gid, offset=offset)
+    id_ = uid or -gid
+    res = fetch_wall_posts(id_, offset=offset)
     return res
