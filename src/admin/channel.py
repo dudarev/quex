@@ -17,8 +17,8 @@ def channels():
 def add():
     if request.method == 'POST':
         c = Channel()
-        c.title = request.form.get('title', '')
-        c.link = request.form.get('link', '')
+        c.title = request.form.get('title', '').strip()
+        c.link = request.form.get('link', '').strip()
         c.type = request.form.get('type', 'in')
         c.put()
         return redirect('/admin/channel', code=303)
