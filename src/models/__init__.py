@@ -29,7 +29,7 @@ class Channel(ndb.Model):
 
     @classmethod
     def get_oldest_fetched(cls):
-        c = Channel.query(Channel.type == 'in').order(-Channel.last_accessed_at).fetch(1)
+        c = Channel.query(Channel.type == 'in').order(Channel.last_accessed_at).fetch(1)
         if not c:
             return None
         else:
