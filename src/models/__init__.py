@@ -60,7 +60,9 @@ class Channel(ndb.Model):
                 q.title = post['text'][:q.MAX_TITLE_LENGTH]
                 q.created_at = datetime.fromtimestamp(int(post['date']))
                 q.put()
-            taskqueue.add(url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
+            taskqueue.add(
+                queue_name='answers',
+                url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
 
     def fetch_questions(self):
         """
@@ -95,7 +97,7 @@ class Question(ndb.Model):
 
     MAX_TITLE_LENGTH = 500
     VK_POST_URL_TEMPLATE = 'https://vk.com/wall{owner_and_post_id}'
-    ANSWERS_UPDATE_NUMBER = 20
+    NUMBER_OF_QUESTIONS_TO_UPDATE_ANSWERS = 10
 
     @property
     def vk_owner_and_post_id(self):
@@ -116,17 +118,19 @@ class Question(ndb.Model):
     @staticmethod
     def _fetch_questions_answers(questions):
         for q in questions:
-            taskqueue.add(url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
+            taskqueue.add(
+                queue_name='answers',
+                url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
 
     @classmethod
     def fetch_old_questions_answers(cls):
-        questions = cls.query().order(cls.answers_fetched_at).fetch(cls.ANSWERS_UPDATE_NUMBER)
+        questions = cls.query().order(cls.answers_fetched_at).fetch(cls.NUMBER_OF_QUESTIONS_TO_UPDATE_ANSWERS)
         cls._fetch_questions_answers(questions)
         return len(questions)
 
     @classmethod
     def fetch_new_questions_answers(cls):
-        questions = cls.query().order(-cls.created_at).fetch(cls.ANSWERS_UPDATE_NUMBER)
+        questions = cls.query().order(-cls.created_at).fetch(cls.NUMBER_OF_QUESTIONS_TO_UPDATE_ANSWERS)
         cls._fetch_questions_answers(questions)
         return len(questions)
 
