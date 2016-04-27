@@ -14,3 +14,9 @@ indexes:
   properties:
   - name: type
   - name: last_accessed_at
+
+- kind: Channel
+  properties:
+  - name: type
+  - name: last_accessed_at
+    direction: desc
