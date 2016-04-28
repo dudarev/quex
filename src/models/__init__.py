@@ -1,8 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from flask import render_template
 from google.appengine.ext import ndb
+from google.appengine.api import search
 from google.appengine.api import taskqueue
 
+import config
 import vk
 
 
@@ -61,7 +64,7 @@ class Channel(ndb.Model):
                 q.created_at = datetime.fromtimestamp(int(post['date']))
                 q.put()
             taskqueue.add(
-                queue_name='answers',
+                queue_name=Question.ANSWERS_QUEUE_NAME,
                 url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
 
     def fetch_questions(self):
@@ -88,16 +91,23 @@ class Channel(ndb.Model):
 
 
 class Question(ndb.Model):
-    answers_fetched_at = ndb.DateTimeProperty(default=datetime(2000, 1, 1), verbose_name='Time Answers Fetched')
+
     channel = ndb.KeyProperty(kind=Channel)
-    created_at = ndb.DateTimeProperty(verbose_name='Time Created')
     text = ndb.TextProperty(default='', verbose_name='Text')
     title = ndb.StringProperty(default='', verbose_name='Title')
-    updated_at = ndb.DateTimeProperty(auto_now=True, verbose_name='Time Updated')
 
+    added_to_search_index_at = ndb.DateTimeProperty(default=datetime(2000, 1, 1))
+    answers_fetched_at = ndb.DateTimeProperty(default=datetime(2000, 1, 1))
+    created_at = ndb.DateTimeProperty()
+    last_fetched_answer_at = ndb.DateTimeProperty(default=datetime(2000, 1, 1))
+
+    ANSWERS_QUEUE_NAME = 'answers'
     MAX_TITLE_LENGTH = 500
-    VK_POST_URL_TEMPLATE = 'https://vk.com/wall{owner_and_post_id}'
+    NUMBER_OF_QUESTIONS_TO_INDEX = 10
     NUMBER_OF_QUESTIONS_TO_UPDATE_ANSWERS = 10
+    SEARCH_INDEX_NAME = 'questions'
+    SMALLEST_REINDEX_INTERVAL = timedelta(hours=1)
+    VK_POST_URL_TEMPLATE = 'https://vk.com/wall{owner_and_post_id}'
 
     @property
     def vk_owner_and_post_id(self):
@@ -119,7 +129,7 @@ class Question(ndb.Model):
     def _fetch_questions_answers(questions):
         for q in questions:
             taskqueue.add(
-                queue_name='answers',
+                queue_name=Question.ANSWERS_QUEUE_NAME,
                 url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
 
     @classmethod
@@ -134,6 +144,16 @@ class Question(ndb.Model):
         cls._fetch_questions_answers(questions)
         return len(questions)
 
+    @classmethod
+    def add_batch_to_search_index(cls):
+        questions = Question.query().order(
+            Question.added_to_search_index_at
+        ).fetch(Question.NUMBER_OF_QUESTIONS_TO_INDEX)
+        for q in questions:
+            taskqueue.add(
+                url='/tasks/q/{}/add_to_search_index'.format(q.key.urlsafe()), method='GET')
+        return len(questions)
+
     def _update_answers(self, answers):
         for comment in answers:
             a = Answer.get_or_insert(self.key.id() + '_{}'.format(comment['cid']))
@@ -142,12 +162,37 @@ class Question(ndb.Model):
                 a.text = comment['text']
                 a.created_at = datetime.fromtimestamp(int(comment['date']))
                 a.put()
+                if self.last_fetched_answer_at < a.created_at:
+                    self.last_fetched_answer_at = a.created_at
         self.answers_fetched_at = datetime.utcnow()
         self.put()
 
     def fetch_answers(self):
         answers = vk.fetch_post_comments(*self.vk_owner_and_post_id.split('_'))
         self._update_answers(answers)
+
+    def _create_document(self):
+        answers = Answer.query(Answer.question == self.key).fetch(100)
+        answers_html = render_template('question/answers_for_index.html', **{'answers': answers})
+        return search.Document(
+            doc_id=self.key.id(),
+            fields=[
+                search.TextField(name='title', value=self.title),
+                search.TextField(name='text', value=self.text),
+                search.HtmlField(name='answers', value=answers_html),
+                search.DateField(name='created_at', value=self.created_at),
+            ],
+            language=config.LANGUAGE
+        )
+
+    def add_to_search_index(self):
+        if self.last_fetched_answer_at > self.added_to_search_index_at:
+            search.Index(name=self.ANSWERS_QUEUE_NAME).put(self._create_document())
+            self.added_to_search_index_at = datetime.utcnow()
+            self.put()
+            return True
+        else:
+            return False
 
 
 class Answer(ndb.Model):
