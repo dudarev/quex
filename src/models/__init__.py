@@ -102,6 +102,7 @@ class Question(ndb.Model):
     last_fetched_answer_at = ndb.DateTimeProperty(default=datetime(2000, 1, 1))
 
     ANSWERS_QUEUE_NAME = 'answers'
+    MAX_ANSWERS_NUMBER = 100
     MAX_TITLE_LENGTH = 500
     NUMBER_OF_QUESTIONS_TO_INDEX = 10
     NUMBER_OF_QUESTIONS_TO_UPDATE_ANSWERS = 10
@@ -171,10 +172,13 @@ class Question(ndb.Model):
         answers = vk.fetch_post_comments(*self.vk_owner_and_post_id.split('_'))
         self._update_answers(answers)
 
-    def _create_document(self):
-        stemmed_content = stem_and_lower(self.text)
-        # answers = Answer.query(Answer.question == self.key).fetch(100)
-        # answers_html = render_template('question/answers_for_index.html', **{'answers': answers})
+    def _create_search_document(self):
+        answers = Answer.query(Answer.question == self.key).fetch(self.MAX_ANSWERS_NUMBER)
+        # join self.text and all answers
+        # stem them
+        stemmed_content = stem_and_lower(
+            ' '.join([self.text] + [a.text for a in answers])
+        )
         return search.Document(
             doc_id=self.key.urlsafe(),
             fields=[
@@ -187,7 +191,7 @@ class Question(ndb.Model):
 
     def add_to_search_index(self):
         if self.last_fetched_answer_at >= self.added_to_search_index_at:
-            search.Index(name=self.SEARCH_INDEX_NAME).put(self._create_document())
+            search.Index(name=self.SEARCH_INDEX_NAME).put(self._create_search_document())
             self.added_to_search_index_at = datetime.utcnow()
             self.put()
             return True
