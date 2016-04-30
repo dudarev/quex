@@ -1,16 +1,20 @@
 cron:
 
-- description: fetch questions
-  url: /cron/fetch_questions
+- description: fetch new questions
+  url: /cron/fetch_new_questions
   schedule: every 30 minutes
+
+- description: fetch old questions
+  url: /cron/fetch_old_questions
+  schedule: every 60 minutes
 
 - description: fetch old questions answers
   url: /cron/fetch_old_questions_answers
-  schedule: every 30 minutes
+  schedule: every 60 minutes
 
 - description: fetch new questions answers
   url: /cron/fetch_new_questions_answers
-  schedule: every 30 minutes
+  schedule: every 60 minutes
 
 - description: add questions to search index
   url: /cron/add_to_search_index

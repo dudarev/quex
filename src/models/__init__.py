@@ -1,3 +1,4 @@
+import copy
 from datetime import datetime, timedelta
 
 from google.appengine.ext import ndb
@@ -26,28 +27,24 @@ class Channel(ndb.Model):
     title = ndb.StringProperty(default='', verbose_name='Title')
     type = ndb.StringProperty(default='in', choices=['in', 'out'], verbose_name='Type')
 
+    MAXIMUM_CHANNELS_NUMBER = 100
+
     @property
     def title_plus(self):
         return self.title or self.link or self.key.id()
-
-    @classmethod
-    def get_oldest_fetched(cls):
-        c = Channel.query(Channel.type == 'in').order(Channel.last_accessed_at).fetch(1)
-        if not c:
-            return None
-        else:
-            return c[0]
 
     def _update_data(self):
         if self.type == 'in' and 'vk.com' in self.link:
             data = vk.fetch_user_or_group_data(self.link)
         else:
             data = {}
+        old_data = copy.deepcopy(self.data)
         if self.data:
             self.data.update(data)
         else:
             self.data = data
-        self.put()
+        if not old_data == self.data:
+            self.put()
         return self.data
 
     def _update_vk_questions(self, questions_data):
@@ -63,28 +60,26 @@ class Channel(ndb.Model):
                 q.title = post['text'][:q.MAX_TITLE_LENGTH]
                 q.created_at = datetime.fromtimestamp(int(post['date']))
                 q.put()
-            taskqueue.add(
-                queue_name=Question.ANSWERS_QUEUE_NAME,
-                url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
+                taskqueue.add(
+                    queue_name=Question.ANSWERS_QUEUE_NAME,
+                    url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
 
-    def fetch_questions(self):
-        """
-        Fetches new and old questions in the channel.
-        """
+    def fetch_new_questions(self):
+        """ Does not update channel access time. """
         self._update_data()
         if self.type == 'in' and 'vk.com' in self.link:
-
-            # fetch new
             questions_data = vk.fetch_questions(self.data)
             self._update_vk_questions(questions_data)
 
-            # fetch old
+    def fetch_old_questions(self):
+        """ Updates channel access time. """
+        self._update_data()
+        if self.type == 'in' and 'vk.com' in self.link:
             offset = self.data.get('offset', 0)
             questions_data = vk.fetch_questions(self.data, offset=offset)
             self._update_vk_questions(questions_data)
-
             if questions_data:
-                self.data['offset'] = offset + vk.WALL_POSTS_COUNT
+                self.data['offset'] = offset + len(questions_data)
             else:
                 self.data['offset'] = 0
             self.put()
@@ -105,7 +100,7 @@ class Question(ndb.Model):
     MAX_ANSWERS_NUMBER = 100
     MAX_TITLE_LENGTH = 500
     NUMBER_OF_QUESTIONS_TO_INDEX = 10
-    NUMBER_OF_QUESTIONS_TO_UPDATE_ANSWERS = 10
+    NUMBER_OF_QUESTIONS_TO_UPDATE_ANSWERS = 20
     SEARCH_INDEX_NAME = 'questions'
     SMALLEST_REINDEX_INTERVAL = timedelta(hours=1)
     VK_POST_URL_TEMPLATE = 'https://vk.com/wall{owner_and_post_id}'
