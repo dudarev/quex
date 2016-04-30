@@ -9,6 +9,7 @@ app = Flask(__name__)
 import admin
 import cron
 import questions
+import search
 import tasks
 
 

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ask City</title>
+</head>
+<body>
+<form action="/search" method="get">
+    <input type="text" name="q">
+    <input type="submit" value="Go">
+</form>
+<ul>
+    {% for q in questions %}
+        <li>
+        <a href="/q/{{ q.key }}">{{ q.title }}</a>
+        </li>
+    {% endfor %}
+</ul>
+
+</body>
+</html>

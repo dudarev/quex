@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
 
-from flask import render_template
 from google.appengine.ext import ndb
 from google.appengine.api import search
 from google.appengine.api import taskqueue
 
 import config
 import vk
+from helpers import stem_and_lower
 
 
 class Config(ndb.Model):
@@ -172,22 +172,22 @@ class Question(ndb.Model):
         self._update_answers(answers)
 
     def _create_document(self):
-        answers = Answer.query(Answer.question == self.key).fetch(100)
-        answers_html = render_template('question/answers_for_index.html', **{'answers': answers})
+        stemmed_content = stem_and_lower(self.text)
+        # answers = Answer.query(Answer.question == self.key).fetch(100)
+        # answers_html = render_template('question/answers_for_index.html', **{'answers': answers})
         return search.Document(
-            doc_id=self.key.id(),
+            doc_id=self.key.urlsafe(),
             fields=[
-                search.TextField(name='title', value=self.title),
-                search.TextField(name='text', value=self.text),
-                search.HtmlField(name='answers', value=answers_html),
+                search.TextField(name='title', value=self.title_plus, language=config.LANGUAGE),
+                search.TextField(name='stemmed_content', value=stemmed_content, language=config.LANGUAGE),
                 search.DateField(name='created_at', value=self.created_at),
             ],
             language=config.LANGUAGE
         )
 
     def add_to_search_index(self):
-        if self.last_fetched_answer_at > self.added_to_search_index_at:
-            search.Index(name=self.ANSWERS_QUEUE_NAME).put(self._create_document())
+        if self.last_fetched_answer_at >= self.added_to_search_index_at:
+            search.Index(name=self.SEARCH_INDEX_NAME).put(self._create_document())
             self.added_to_search_index_at = datetime.utcnow()
             self.put()
             return True
