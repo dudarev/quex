@@ -63,22 +63,34 @@ class Channel(ndb.Model):
                     queue_name=Question.ANSWERS_QUEUE_NAME,
                     url='/tasks/q/{}/fetch_answers'.format(q.key.urlsafe()), method='GET')
 
+    @staticmethod
+    def _get_oldest_vk_post_time(questions_data):
+        first_post = questions_data[0]
+        oldest_post_at = datetime.fromtimestamp(int(first_post['date']))
+        for post in questions_data[1:]:
+            post_created_at = datetime.fromtimestamp(int(post['date']))
+            if oldest_post_at < post_created_at:
+                oldest_post_at = post_created_at
+        return oldest_post_at
+
     def fetch_new_questions(self):
-        """ Does not update channel access time. """
         self._update_data()
         if self.type == 'in' and 'vk.com' in self.link:
             questions_data = vk.fetch_questions(self.data)
             self._update_vk_questions(questions_data)
 
     def fetch_old_questions(self):
-        """ Updates channel access time. """
         self._update_data()
         if self.type == 'in' and 'vk.com' in self.link:
             offset = self.data.get('offset', 0)
             questions_data = vk.fetch_questions(self.data, offset=offset)
             self._update_vk_questions(questions_data)
             if questions_data:
-                self.data['offset'] = offset + len(questions_data)
+                oldest_post_at = self._get_oldest_vk_post_time(questions_data)
+                if datetime.utcnow() - oldest_post_at > config.OLDEST_POST_TIMEDELTA:
+                    self.data['offset'] = 0
+                else:
+                    self.data['offset'] = offset + len(questions_data)
             else:
                 self.data['offset'] = 0
             self.put()
