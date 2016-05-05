@@ -23,7 +23,6 @@ class Config(ndb.Model):
 class Channel(ndb.Model):
     data = ndb.JsonProperty(verbose_name='Channel Data')
     link = ndb.StringProperty(default='', verbose_name='Link')
-    last_accessed_at = ndb.DateTimeProperty(auto_now=True, verbose_name='Last Accessed')
     title = ndb.StringProperty(default='', verbose_name='Title')
     type = ndb.StringProperty(default='in', choices=['in', 'out'], verbose_name='Type')
 

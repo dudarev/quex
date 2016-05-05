@@ -9,14 +9,3 @@ indexes:
 # manually, move them above the marker line.  The index.yaml file is
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
-
-- kind: Channel
-  properties:
-  - name: type
-  - name: last_accessed_at
-
-- kind: Channel
-  properties:
-  - name: type
-  - name: last_accessed_at
-    direction: desc
